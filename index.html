@@ -774,7 +774,7 @@
           if (this.isMuted || !this.audioCtx) return;
           const isNativeSpeaking = ("speechSynthesis" in window) && window.speechSynthesis.speaking;
           const isFallbackSpeaking = this.activeAudio && !this.activeAudio.paused;
-          const vol = (isNativeSpeaking || isFallbackSpeaking) ? 0.01 : 0.028;
+          const vol = (isNativeSpeaking || isFallbackSpeaking) ? 0.05 : 0.18;
 
           const now = this.audioCtx.currentTime;
           const osc = this.audioCtx.createOscillator();
@@ -890,27 +890,39 @@
 
           const phrase = chunks[idx++];
           const encoded = encodeURIComponent(phrase);
-          const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=gtx&q=${encoded}`;
+        const ttsUrl = `https://googleapis.com{encoded}`;
+        const audio = new Audio();
+        audio.referrerPolicy = "no-referrer";
+        audio.src = ttsUrl;
+        audio.playbackRate = 1.0;
+        audio.volume = 1.0;
+        this.activeAudio = audio;
 
-          const audio = new Audio(ttsUrl);
-          audio.playbackRate = 1.0;
-          audio.volume = 1.0;
-          this.activeAudio = audio;
-
-          audio.onended = () => playNextChunk();
-          audio.onerror = () => {
-            // Tuyệt đối không dùng giọng ngoại ngữ khác nếu thiếu giọng tiếng Việt
-            javascript
-const u = new SpeechSynthesisUtterance(phrase);
-u.lang = 'vi-VN';
-u.onend = () => playNextChunk();
-window.speechSynthesis.speak(u);
-          };
-
-          audio.play().catch(() => {
-            audio.onerror();
-          });
+        audio.onended = () => playNextChunk();
+        audio.onerror = () => {
+          if ("speechSynthesis" in window) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(phrase);
+            u.lang = "vi-VN";
+            let moved = false;
+            const next = () => {
+              if (!moved) {
+                moved = true;
+                playNextChunk();
+              }
+            };
+            u.onend = next;
+            u.onerror = next;
+            window.speechSynthesis.speak(u);
+            setTimeout(next, Math.max(2000, phrase.length * 90));
+          } else {
+            playNextChunk();
+          }
         };
+
+        audio.play().catch(() => {
+          audio.onerror();
+        });
 
         playNextChunk();
       },
