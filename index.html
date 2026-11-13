@@ -890,7 +890,7 @@
 
           const phrase = chunks[idx++];
           const encoded = encodeURIComponent(phrase);
-          const ttsUrl = `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encoded}`;
+          const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=gtx&q=${encoded}`;
 
           const audio = new Audio(ttsUrl);
           audio.playbackRate = 1.0;
@@ -900,7 +900,11 @@
           audio.onended = () => playNextChunk();
           audio.onerror = () => {
             // Tuyệt đối không dùng giọng ngoại ngữ khác nếu thiếu giọng tiếng Việt
-            onFinish();
+            javascript
+const u = new SpeechSynthesisUtterance(phrase);
+u.lang = 'vi-VN';
+u.onend = () => playNextChunk();
+window.speechSynthesis.speak(u);
           };
 
           audio.play().catch(() => {
